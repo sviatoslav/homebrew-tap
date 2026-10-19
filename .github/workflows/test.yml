@@ -1,0 +1,24 @@
+name: Test formula
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c # 2026.07.10.1
+        id: homebrew
+        with:
+          stable: true
+      - name: Style and audit every target
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          brew install-bundler-gems
+          brew style sviatoslav/tap/portbook
+          brew audit --strict --online --os=all --arch=all sviatoslav/tap/portbook
+      - run: brew install sviatoslav/tap/portbook
+      - run: brew test sviatoslav/tap/portbook
