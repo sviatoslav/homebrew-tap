@@ -5,23 +5,23 @@ class Portbook < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.2.0/portbook_0.2.0_darwin_arm64.tar.gz"
-      sha256 "d09ed479de43275efe5334e3f01772639fed714f2f497b2ce196ee4f8ed7ce76"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_darwin_arm64.tar.gz"
+      sha256 "7e73c0f7da20daa41f8961b4b65416f9180ccd67c999365ac636a1c1c734ecfd"
     end
     on_intel do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.2.0/portbook_0.2.0_darwin_amd64.tar.gz"
-      sha256 "420fa9adbac2f7ab3d89d7e6af0b15a2ff115954fcdba331039e4f7f50d4d06b"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_darwin_amd64.tar.gz"
+      sha256 "5b9f63fdc854f54a3d47695b07c98a5d792476fb93ca876b30e3650a794783a5"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.2.0/portbook_0.2.0_linux_arm64.tar.gz"
-      sha256 "45eb3be3b60d8a1ed5b23a809246ca5e43202df9f93843dfd84725d5d8829723"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_linux_arm64.tar.gz"
+      sha256 "6f1396c3420c05f4cdd538e2c8eb88a3eea0e7ccabbfb6ac5b41602d859ba771"
     end
     on_intel do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.2.0/portbook_0.2.0_linux_amd64.tar.gz"
-      sha256 "708e49be3d7bf2558f865093e909118072acb433749ae5d4be35bd16289ab9ad"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_linux_amd64.tar.gz"
+      sha256 "d173e1b7274dce35e59ca87679061c98554a73c2262fe4193c2238c021968730"
     end
   end
 
@@ -47,18 +47,32 @@ class Portbook < Formula
     assert_equal port.to_i, bookings.first.fetch("port")
     refute_path_exists testpath/"config"
 
-    result = JSON.parse(shell_output("#{bin}/portbook release api"))
-    assert_equal true, result.fetch("released")
+    shell_output("#{bin}/portbook config remove --all")
+    reset = JSON.parse(shell_output("#{bin}/portbook config reset --output json"))
+    assert_equal "config reset", reset.fetch("command")
+    assert_equal 16_384, reset.fetch("changed")
+    assert_equal 16_384, reset.fetch("total")
+    repeated = JSON.parse(shell_output("#{bin}/portbook config --output json reset"))
+    assert_equal 0, repeated.fetch("changed")
+    pool = JSON.parse(shell_output("#{bin}/portbook config show --output json"))
+    assert_equal [{ "start" => 49_152, "end" => 65_535 }], pool.fetch("ranges")
+    assert_equal port, shell_output("#{bin}/portbook get api")
+    assert_match "unknown flag", shell_output("#{bin}/portbook get api --output json 2>&1", 2)
+    assert_match "unknown flag", shell_output("#{bin}/portbook release api --output json 2>&1", 2)
+    assert_match "unknown flag", shell_output("#{bin}/portbook --output json list 2>&1", 2)
+    assert_equal port, shell_output("#{bin}/portbook get api")
+
+    result = shell_output("#{bin}/portbook release api")
+    assert_match "Released port #{port.strip} for \"api\" in ", result
     assert_empty JSON.parse(shell_output("#{bin}/portbook list")).fetch("bookings")
     assert_match "reservation not found", shell_output("#{bin}/portbook get api 2>&1", 1)
     assert_match "reservation not found", shell_output("#{bin}/portbook release api 2>&1", 1)
 
-    shell_output("#{bin}/portbook reserve api")
-    shell_output("#{bin}/portbook reserve web")
-    result = JSON.parse(shell_output("#{bin}/portbook release --all"))
-    assert_equal true, result.fetch("all")
-    assert_equal 2, result.fetch("released")
-    assert_equal result.fetch("ports").sort, result.fetch("ports")
+    api = shell_output("#{bin}/portbook reserve api").to_i
+    web = shell_output("#{bin}/portbook reserve web").to_i
+    result = shell_output("#{bin}/portbook release --all")
+    assert_match "Released 2 bookings in ", result
+    assert_match ": #{[api, web].sort.join(", ")}.\n", result
     assert_empty JSON.parse(shell_output("#{bin}/portbook list")).fetch("bookings")
   end
 end
