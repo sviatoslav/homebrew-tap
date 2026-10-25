@@ -5,23 +5,23 @@ class Portbook < Formula
 
   on_macos do
     on_arm do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_darwin_arm64.tar.gz"
-      sha256 "7e73c0f7da20daa41f8961b4b65416f9180ccd67c999365ac636a1c1c734ecfd"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.4.0/portbook_0.4.0_darwin_arm64.tar.gz"
+      sha256 "8b749ce1549e035c1b5274244d5476820e7cc4a3fc136701b361bb7d40084fd4"
     end
     on_intel do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_darwin_amd64.tar.gz"
-      sha256 "5b9f63fdc854f54a3d47695b07c98a5d792476fb93ca876b30e3650a794783a5"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.4.0/portbook_0.4.0_darwin_amd64.tar.gz"
+      sha256 "46c6164f7a2c26b7773f5b160faffcb29e72331edbc3b945b07ba9a8ee030db7"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_linux_arm64.tar.gz"
-      sha256 "6f1396c3420c05f4cdd538e2c8eb88a3eea0e7ccabbfb6ac5b41602d859ba771"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.4.0/portbook_0.4.0_linux_arm64.tar.gz"
+      sha256 "76ee7ebf1300b070b71c830e6b2460f19234edf2207a2ae65453beb089f7585f"
     end
     on_intel do
-      url "https://github.com/sviatoslav/portbook/releases/download/v0.3.0/portbook_0.3.0_linux_amd64.tar.gz"
-      sha256 "d173e1b7274dce35e59ca87679061c98554a73c2262fe4193c2238c021968730"
+      url "https://github.com/sviatoslav/portbook/releases/download/v0.4.0/portbook_0.4.0_linux_amd64.tar.gz"
+      sha256 "adba21dfee891257e54f96a1476d4cd7422872d809aaa4ee50faeae3be83bbc0"
     end
   end
 
@@ -31,6 +31,7 @@ class Portbook < Formula
   end
 
   test do
+    ENV["HOME"] = testpath.to_s
     ENV["XDG_CONFIG_HOME"] = (testpath/"xdg").to_s
     ENV["PORTBOOK_CONFIG_DIR"] = (testpath/"config").to_s
     assert_match "portbook #{version} (commit ", shell_output("#{bin}/portbook --version")
@@ -47,19 +48,17 @@ class Portbook < Formula
     assert_equal port.to_i, bookings.first.fetch("port")
     refute_path_exists testpath/"config"
 
-    shell_output("#{bin}/portbook config remove --all")
-    reset = JSON.parse(shell_output("#{bin}/portbook config reset --output json"))
-    assert_equal "config reset", reset.fetch("command")
-    assert_equal 16_384, reset.fetch("changed")
-    assert_equal 16_384, reset.fetch("total")
-    repeated = JSON.parse(shell_output("#{bin}/portbook config --output json reset"))
-    assert_equal 0, repeated.fetch("changed")
+    assert_equal "Removed 16384 ports. Total: 0 ports.\n", shell_output("#{bin}/portbook config remove --all")
+    assert_equal "Reset 16384 ports. Total: 16384 ports.\n", shell_output("#{bin}/portbook config reset")
+    assert_equal "Reset 0 ports. Total: 16384 ports.\n", shell_output("#{bin}/portbook config reset")
     pool = JSON.parse(shell_output("#{bin}/portbook config show --output json"))
     assert_equal [{ "start" => 49_152, "end" => 65_535 }], pool.fetch("ranges")
     assert_equal port, shell_output("#{bin}/portbook get api")
     assert_match "unknown flag", shell_output("#{bin}/portbook get api --output json 2>&1", 2)
     assert_match "unknown flag", shell_output("#{bin}/portbook release api --output json 2>&1", 2)
     assert_match "unknown flag", shell_output("#{bin}/portbook --output json list 2>&1", 2)
+    assert_match "unknown flag", shell_output("#{bin}/portbook config reset --output json 2>&1", 2)
+    assert_match "unknown flag", shell_output("#{bin}/portbook config --output json reset 2>&1", 2)
     assert_equal port, shell_output("#{bin}/portbook get api")
 
     result = shell_output("#{bin}/portbook release api")
