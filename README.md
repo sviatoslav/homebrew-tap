@@ -12,8 +12,8 @@ brew install sviatoslav/tap/portbook
 portbook --version
 ```
 
-The formula installs the published [v0.1.0 binaries](https://github.com/sviatoslav/portbook/releases/tag/v0.1.0)
-for macOS and Linux on Intel/AMD x86-64 or ARM64. No Go toolchain is required.
+The formula installs published [Portbook binaries](https://github.com/sviatoslav/portbook/releases)
+for macOS and Linux on Intel/AMD x86-64 or ARM64.
 Each platform archive is verified against its release SHA256 checksum.
 
 To update or uninstall:
